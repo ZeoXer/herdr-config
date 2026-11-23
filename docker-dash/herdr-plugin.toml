@@ -1,0 +1,22 @@
+id = "andrew.docker-dash"
+name = "Docker Dashboard"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Manage Docker containers and images from a herdr pane"
+platforms = ["macos", "linux"]
+
+# Only runs on `herdr plugin install`; with `plugin link`, run `make build` yourself.
+[[build]]
+command = ["go", "build", "-o", "bin/herdr-docker", "."]
+
+[[panes]]
+id = "dash"
+title = "Docker"
+placement = "zoomed"
+command = ["./bin/herdr-docker"]
+
+[[actions]]
+id = "open"
+title = "Open Docker dashboard"
+contexts = ["workspace"]
+command = ["sh", "-c", "\"$HERDR_BIN_PATH\" plugin pane open --plugin andrew.docker-dash --entrypoint dash"]

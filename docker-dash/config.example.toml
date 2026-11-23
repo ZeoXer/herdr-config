@@ -1,0 +1,28 @@
+# docker-dash settings: copy to ~/.config/docker-dash/config.toml
+# Changes apply the next time the dashboard starts.
+
+# Docker context to open with. "" = the current one (`docker context use`).
+# Switch while running with C.
+context = ""
+
+# Full reload every N seconds (Docker events also refresh it right away).
+refresh_seconds = 5
+
+# CPU / MEM sampling interval, only while the Containers tab is shown.
+stats_seconds = 3
+
+# Filter text to start with (same as typing it after /).
+filter = ""
+
+# Containers to hide, as name patterns (* ? [abc]). Prune still sees them.
+# Example: hide = ["buildx_buildkit_*", "*-migrate"]
+hide = []
+
+# Where `l` (logs) and `e` (shell) open:
+#   "pane"   = a split in the Herdr app next to the dashboard (when running in the app);
+#              logs open the docker-logs viewer in a new full-size tab instead
+#   "inline" = inside the dashboard.
+open_in = "pane"
+
+# Split direction for those panes: "right" or "down".
+split = "right"
