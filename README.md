@@ -50,10 +50,3 @@ repo 可以 clone 在任何位置。如果之後搬動了 repo，symlink 會斷�
 mkdir -p ~/.config/docker-dash && cp docker-dash/config.example.toml ~/.config/docker-dash/config.toml
 ```
 
-## 我自己換電腦
-
-```sh
-./install.sh --all    # 另外套用 layouts/my-main.json、config/keys.json、config/settings.json
-```
-
-Herdr 從設定介面修改 `keys.json`、`settings.json` 時會直接重寫檔案，所以這兩個是用複製的，不是 symlink。改完後執行 `./sync.sh` 把它們拉回 repo，再 commit。mod 和 layout 是 symlink，直接在 repo 裡編輯就會生效。
