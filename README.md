@@ -1,6 +1,6 @@
 # herdr-config
 
-我自己做的 Herdr 桌面 app mods，還有一個 Docker TUI。
+我的 Herdr 桌面 app mods，包含在開發過程中常用到的一些實用小工具。
 
 | Mod | 快捷鍵 | 做什麼 |
 |---|---|---|
@@ -50,6 +50,10 @@ repo 可以 clone 在任何位置。如果之後搬動了 repo，symlink 會斷�
 mkdir -p ~/.config/docker-dash && cp docker-dash/config.example.toml ~/.config/docker-dash/config.toml
 ```
 
-## 開發
+## 我自己換電腦
 
-mod 是 symlink，直接編輯 `mods/<name>/main.js`，Herdr 會即時重新載入。改完用 `herdr-app check mods/<name>` 檢查。
+```sh
+./install.sh --all    # 另外套用 layouts/my-main.json、config/keys.json、config/settings.json
+```
+
+Herdr 從設定介面修改 `keys.json`、`settings.json` 時會直接重寫檔案，所以這兩個是用複製的，不是 symlink。改完後執行 `./sync.sh` 把它們拉回 repo，再 commit。mod 和 layout 是 symlink，直接在 repo 裡編輯就會生效。
