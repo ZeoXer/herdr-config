@@ -8,10 +8,12 @@
 | `docker-logs` | （由 docker-quick 開啟） | 以分頁顯示 container log，stack trace 合併成一筆，可點選、多選、⌘C 複製，可切換自動換行 |
 | `docker-watch` | （背景執行） | container crash、OOM、unhealthy 時跳通知，點通知直接開 log；手動 stop/restart 不會通知 |
 | `git-links` | ⌘⇧G | 依目前 pane 所在的 git repo，一鍵打開 repo / branch / 資料夾 / commit / PR / issues / CI 網頁；支援 GitHub、GitLab、Bitbucket、Gitea |
+| `mobile-preview` | ⌘⇧E | 彈出視窗選取 berth 部署的前端專案（與 local dev server）：Enter 開啟具真實裝置外框的原生透明浮動預覽窗（10 種裝置：iPhone SE / 17 Pro / 17 Pro Max、Galaxy S25、Pixel 8、iPad mini / Air 11″ / Pro 13″、MacBook Air 13″、1080p 桌機；關閉時自動 focus 回 Herdr）、1~9、0 切換裝置、⌘R 旋轉橫直向 |
 | `agent-usage` | （側邊欄區塊） | 顯示 agent 剩餘用量：Claude 訂閱的 5 小時 / 7 天額度剩餘 % 與重置倒數、每個 Claude agent 的 context 剩餘；Codex 的方案額度；Antigravity 各模型群組（Gemini、Claude/GPT）的 5 小時 / 每週額度。每個 provider 和 agent 都有原生 icon，點 agent 跳過去 |
+| `device-preview/` | Enter（從 mobile-preview） | Swift + WKWebView 寫的透明裝置外框預覽器：金屬邊框、玻璃反光、實體按鍵，模擬 Dynamic Island、打孔鏡頭、Touch ID、MacBook 劉海與選單列、桌機螢幕支架；iPhone / Android / iPad / Mac 各送對應的 User-Agent；`--list` 列出裝置、`--snapshot out.png` 不開視窗直接輸出外框圖，支援 `*.localhost` 與即切裝置 |
 | `docker-dash/` | ⌘O（從 docker-quick） | Go + Bubble Tea 寫的 Docker TUI：containers / images / volumes / networks、compose 分組、CPU/MEM、prune |
 
-需求：macOS 上的 Herdr app、Docker、Go 1.27+（編譯 docker-dash 用）。
+需求：macOS 上的 Herdr app、Docker、Go 1.27+（編譯 docker-dash 用）。mobile-preview 需要 `berth` 在 PATH 上（例如 `~/.local/bin/berth`），或用環境變數 `BERTH_BIN` 指定位置；找不到時仍會列出本機 dev server。
 
 ## 安裝
 

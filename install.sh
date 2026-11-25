@@ -50,6 +50,16 @@ if [[ " ${mods[*]} " == *" docker-quick "* ]]; then
   fi
 fi
 
+if [[ " ${mods[*]} " == *" mobile-preview "* ]]; then
+  echo "device-preview (opened by mobile-preview's ↵)"
+  link "$REPO/device-preview" "$HOME/herdr-plugins/device-preview"
+  if command -v swiftc >/dev/null; then
+    make -C "$REPO/device-preview" build >/dev/null && echo "  built   device-preview/bin/device-preview"
+  else
+    echo "  skip    swiftc not found; install Xcode Command Line Tools, then: make -C $REPO/device-preview build"
+  fi
+fi
+
 if command -v herdr-app >/dev/null; then
   echo "check"
   for m in "${mods[@]}"; do

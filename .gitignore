@@ -3,3 +3,4 @@
 gpui-kit.d.ts
 # Built binary (make -C docker-dash build)
 docker-dash/bin/
+device-preview/bin/
