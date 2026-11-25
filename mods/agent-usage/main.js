@@ -8,13 +8,20 @@
 // (no model call, no tokens), per model group. Click an agent to go to it.
 
 import { View, div, image, svg } from "gpui-kit";
-import { v_flex, h_flex } from "gpui-base";
-import { agents, exec, home, readTextFile, run, theme, checking } from "herdr";
+import { v_flex, h_flex, Scrollbar } from "gpui-base";
+import { agents, exec, home, readTextFile, run, theme, checking, watchFolder } from "herdr";
 
 const POLL_MS = 15000;
 const CODEX_POLL_MS = 60000;
-const AGY_POLL_MS = 180000;
-const AGY_IDLE_POLL_MS = 900000; // no agy agent running: check rarely
+// agy /usage takes ~2s and no tokens. Checked every AGY_TICK_MS; how often it actually runs
+// depends on what the agy agents are doing (see agyDue).
+const AGY_TICK_MS = 5000;
+const AGY_WORKING_S = 20; // an agy agent is working: quota moves fast
+const AGY_LIVE_S = 60; // agy agents running but idle
+const AGY_IDLE_S = 180; // no agy agent
+const AGY_SETTLED_S = 3; // an agy run (any, e.g. `agy -p` from Claude) stopped writing: check now
+const AGY_ACTIVE_S = 15; // an agy run is still writing: check this often
+const AGY_CONVERSATIONS = () => `${home()}/.gemini/antigravity-cli/conversations`;
 const RECENT = 7 * 86400; // show a provider without a running agent if used this week
 
 // Herdr's program table keys (programs.json), with the agent-reported app names as a fallback.
@@ -88,15 +95,18 @@ export default class AgentUsage extends View {
     this.sessions = {}; // terminal address -> statusline record
     this.codex = null; // { at, rate_limits }
     this.agy = null; // { at, groups }
-    this.agyNext = 0;
+    this.agyLast = 0; // seconds; last /usage started
+    this.agySig = ""; // agy agents' status+seq at that time
+    this.agyBusy = false;
+    this.agyChange = 0; // seconds; last write by any agy run
     if (checking()) return;
     this.load(cx);
     this.loadCodex(cx);
     this.loadAgy(cx);
     cx.timer.every(POLL_MS, (cx) => this.load(cx));
     cx.timer.every(CODEX_POLL_MS, (cx) => this.loadCodex(cx));
-    // Ticks every 3 minutes; polls agy then, or every 15 when no agy agent is running.
-    cx.timer.every(AGY_POLL_MS, (cx) => this.loadAgy(cx));
+    cx.timer.every(AGY_TICK_MS, (cx) => { if (this.agyDue()) this.loadAgy(cx); });
+    this.watchAgy(cx);
   }
 
   dir() {
@@ -135,10 +145,43 @@ export default class AgentUsage extends View {
     });
   }
 
+  // agy runs that aren't Herdr agents (Claude calling `agy -p` from its shell) still write their
+  // conversation here; /usage itself doesn't, so this can't trigger itself.
+  watchAgy(cx) {
+    cx.spawn(async () => {
+      for (;;) {
+        try {
+          const changed = await watchFolder(AGY_CONVERSATIONS());
+          if (changed.length) this.agyChange = now();
+        } catch {
+          return; // no agy folder (or no watch slots): the timer pace still applies
+        }
+      }
+    });
+  }
+
+  agySignature() {
+    return agents().filter((a) => providerOf(a) === "antigravity").map((a) => `${a.address}:${a.status}:${a.seq}`).join(",");
+  }
+
+  // Poll right after an agy agent changes (a turn ended, one started or quit), else on a
+  // pace that follows how busy they are.
+  agyDue() {
+    if (this.agyBusy) return false;
+    const live = agents().filter((a) => providerOf(a) === "antigravity");
+    const since = now() - this.agyLast;
+    if (this.agySignature() !== this.agySig) return since >= 3;
+    if (this.agyChange > this.agyLast) {
+      return now() - this.agyChange >= AGY_SETTLED_S || since >= AGY_ACTIVE_S;
+    }
+    if (live.some((a) => a.status === "working")) return since >= AGY_WORKING_S;
+    return since >= (live.length ? AGY_LIVE_S : AGY_IDLE_S);
+  }
+
   loadAgy(cx) {
-    const live = agents().some((a) => providerOf(a) === "antigravity");
-    if (!live && this.agy && Date.now() < this.agyNext) return;
-    this.agyNext = Date.now() + AGY_IDLE_POLL_MS;
+    this.agyLast = now();
+    this.agySig = this.agySignature();
+    this.agyBusy = true;
     cx.spawn(async (cx) => {
       try {
         const r = await exec("sh", ["-c", AGY_SCRIPT], { timeout: 30000 });
@@ -148,6 +191,7 @@ export default class AgentUsage extends View {
       } catch (e) {
         if (!this.agy) this.agy = { at: null, groups: [], error: String(e?.message ?? e) };
       }
+      this.agyBusy = false;
       cx.notify();
     });
   }
@@ -299,10 +343,15 @@ export default class AgentUsage extends View {
       this.codexSection(live("codex")),
       this.agySection(live("antigravity")),
     ].filter(Boolean);
-    return v_flex().id("root").size_full().bg(t.chrome).px(12).py(8).gap(8)
+    // Header matches the shipped Agents list's (same paddings, size and weight).
+    return v_flex().id("root").size_full().bg(t.chrome).border_t(1).border_color(t.border)
       .on_size_change((size, cx) => { if (size.width !== this.width) { this.width = size.width; cx.notify(); } })
-      .child(div().text_size(12).font_semibold().text_color(t.dim).child(this.width < 160 ? "USE" : "USAGE LEFT"))
-      .child(v_flex().id("usage-scroll").flex_1().gap(10).overflow_y_scrollbar()
-        .children(sections.length ? sections : [this.hint("No Claude, Codex or Antigravity agents running")]));
+      .child(h_flex().px(16).h(41).pt(14).pb(5).flex_none().items_center()
+        .child(div().text_size(11.5).font_medium().text_color(t.dim).child(this.width < 160 ? "Usage" : "Usage Left")))
+      // Scrollbar only while the pointer is over the panel, so it goes as soon as you leave.
+      .child(div().relative().flex_1().min_h(0)
+        .child(v_flex().id("usage-scroll").size_full().px(16).pt(4).pb(10).gap(10).overflow_y_scroll()
+          .children(sections.length ? sections : [this.hint("No Claude, Codex or Antigravity agents running")]))
+        .child(Scrollbar.vertical("usage-scroll").mode("hover").absolute().inset_0()));
   }
 }
